@@ -16,7 +16,7 @@ import (
 // Parameters
 
 const totalNames int = 100
-const namingStrategy = "bestfit" // uniform, random, bestfit
+const namingStrategy = "uniform" // uniform, random, bestfit, quietesthalf
 
 // Sorters
 
@@ -45,6 +45,8 @@ func main() {
 			name = rand.Uint64()
 		} else if namingStrategy == "bestfit" {
 			name = nameForBestFit(names)
+		} else if namingStrategy == "quietesthalf" {
+			name = nameForQuiestestHalf(names)
 		} else {
 			panic("Invalid naming strategy")
 		}
@@ -113,6 +115,33 @@ func nameForBestFit(names []uint64) uint64 {
 		maxName = math.MaxUint64
 	}
 	// find a new name within this spacing
+	for name <= minName && name >= maxName {
+		name = rand.Uint64()
+	}
+	return name
+}
+
+func nameForQuiestestHalf(names []uint64) uint64 {
+	// count the vaults in each half
+	var halfway uint64 = math.MaxUint64 / 2
+	firstHalfVaults := 0
+	secondHalfVaults := 0
+	for _, name := range names {
+		if name < halfway {
+			firstHalfVaults = firstHalfVaults + 1
+		} else {
+			secondHalfVaults = secondHalfVaults + 1
+		}
+	}
+	var minName uint64 = 0
+	var maxName uint64 = math.MaxUint64
+	if firstHalfVaults > secondHalfVaults {
+		minName = halfway
+	} else {
+		maxName = halfway
+	}
+	// find a new name within this spacing
+	name := rand.Uint64()
 	for name <= minName && name >= maxName {
 		name = rand.Uint64()
 	}
