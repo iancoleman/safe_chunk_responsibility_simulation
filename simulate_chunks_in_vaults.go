@@ -17,7 +17,8 @@ import (
 const totalNodes int = 100
 const totalChunks int = 1000000
 const groupSize int = 8
-const namingStrategy = "bestfit" // uniform, random, bestfit
+const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
+const spacingStrategy = "xordistance" // linear, xordistance
 
 // Structs
 
@@ -61,20 +62,25 @@ func main() {
 	for i := 0; i < totalNodes; i++ {
 		// get name that suits the naming strategy
 		var nodeName uint64
+		// get current names
+		names := []uint64{}
+		for _, node := range nodes {
+			names = append(names, node.Name)
+		}
+		// generate the next node name
 		if namingStrategy == "uniform" {
 			progress := float64(i) / float64(totalNodes)
 			nodeName = uint64(float64(math.MaxUint64) * progress)
 		} else if namingStrategy == "random" {
 			nodeName = rand.Uint64()
 		} else if namingStrategy == "bestfit" {
-			names := []uint64{}
-			for _, node := range nodes {
-				names = append(names, node.Name)
-			}
 			nodeName = nameForBestFit(names)
+		} else if namingStrategy == "quietesthalf" {
+			nodeName = nameForQuiestestHalf(names)
 		} else {
 			panic("Invalid naming strategy")
 		}
+		// add new node to nodes
 		node := Node{
 			Name:   nodeName,
 			Chunks: 0,
@@ -132,7 +138,14 @@ func nameForBestFit(names []uint64) uint64 {
 		if i > 0 {
 			previousName = names[i-1]
 		}
-		spacing := thisName - previousName
+		var spacing uint64
+		if spacingStrategy == "linear" {
+			spacing = thisName - previousName
+		} else if spacingStrategy == "xordistance" {
+			spacing = thisName ^ previousName
+		} else {
+			panic("unknown spacing strategy")
+		}
 		if spacing > maxSpacing {
 			maxSpacing = spacing
 			minName = previousName
@@ -147,6 +160,33 @@ func nameForBestFit(names []uint64) uint64 {
 		maxName = math.MaxUint64
 	}
 	// find a new name within this spacing
+	for name <= minName && name >= maxName {
+		name = rand.Uint64()
+	}
+	return name
+}
+
+func nameForQuiestestHalf(names []uint64) uint64 {
+	// count the vaults in each half
+	var halfway uint64 = math.MaxUint64 / 2
+	firstHalfVaults := 0
+	secondHalfVaults := 0
+	for _, name := range names {
+		if name < halfway {
+			firstHalfVaults = firstHalfVaults + 1
+		} else {
+			secondHalfVaults = secondHalfVaults + 1
+		}
+	}
+	var minName uint64 = 0
+	var maxName uint64 = math.MaxUint64
+	if firstHalfVaults > secondHalfVaults {
+		minName = halfway
+	} else {
+		maxName = halfway
+	}
+	// find a new name within this spacing
+	name := rand.Uint64()
 	for name <= minName && name >= maxName {
 		name = rand.Uint64()
 	}
