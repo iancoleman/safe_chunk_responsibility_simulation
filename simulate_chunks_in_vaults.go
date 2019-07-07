@@ -6,6 +6,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"math/big"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -19,6 +20,7 @@ const totalChunks int = 1000000
 const groupSize int = 8
 const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
 const spacingStrategy = "xordistance" // linear, xordistance
+const relocations int = 100
 
 // Structs
 
@@ -56,36 +58,24 @@ func main() {
 	// set up random numbers
 	nowNanos := time.Now().UnixNano()
 	rand.Seed(nowNanos)
-	fmt.Println("Seed is", nowNanos)
+	// report the starting parameters
+	fmt.Print("seed,", nowNanos, "\n")
+	fmt.Print("totalNodes,", totalNodes, "\n")
+	fmt.Print("totalChunks,", totalChunks, "\n")
+	fmt.Print("groupSize,", groupSize, "\n")
+	fmt.Print("namingStrategy,", namingStrategy, "\n")
+	fmt.Print("spacingStrategy,", spacingStrategy, "\n")
+	fmt.Print("relocations,", relocations, "\n")
+	fmt.Println()
 	// create nodes
 	nodes := []Node{}
 	for i := 0; i < totalNodes; i++ {
-		// get name that suits the naming strategy
-		var nodeName uint64
-		// get current names
-		names := []uint64{}
-		for _, node := range nodes {
-			names = append(names, node.Name)
-		}
-		// generate the next node name
-		if namingStrategy == "uniform" {
-			progress := float64(i) / float64(totalNodes)
-			nodeName = uint64(float64(math.MaxUint64) * progress)
-		} else if namingStrategy == "random" {
-			nodeName = rand.Uint64()
-		} else if namingStrategy == "bestfit" {
-			nodeName = nameForBestFit(names)
-		} else if namingStrategy == "quietesthalf" {
-			nodeName = nameForQuiestestHalf(names)
-		} else {
-			panic("Invalid naming strategy")
-		}
-		// add new node to nodes
-		node := Node{
-			Name:   nodeName,
-			Chunks: 0,
-		}
-		nodes = append(nodes, node)
+		nodes = addNewNode(nodes)
+	}
+	// do relocations
+	for i := 0; i < relocations; i++ {
+		nodes = removeRandomNode(nodes)
+		nodes = addNewNode(nodes)
 	}
 	// create chunks
 	for i := 0; i < totalChunks; i++ {
@@ -107,15 +97,53 @@ func main() {
 	for _, n := range nodes {
 		fmt.Printf("%s,%d\n", nameStr(n.Name), n.Chunks)
 	}
+	spacings := getAllSpacings(nodes)
+	fmt.Println("\nStandard deviation of spacings:")
+	fmt.Println(standardDeviation(spacings))
+}
+
+func addNewNode(nodes []Node) []Node {
+	// get name that suits the naming strategy
+	var nodeName uint64
+	// get current names
+	names := []uint64{}
+	for _, node := range nodes {
+		names = append(names, node.Name)
+	}
+	// generate the next node name
+	if namingStrategy == "uniform" {
+		progress := float64(len(nodes)) / float64(totalNodes)
+		nodeName = uint64(float64(math.MaxUint64) * progress)
+	} else if namingStrategy == "random" {
+		nodeName = rand.Uint64()
+	} else if namingStrategy == "bestfit" {
+		nodeName = nameForBestFit(names)
+	} else if namingStrategy == "quietesthalf" {
+		nodeName = nameForQuiestestHalf(names)
+	} else {
+		panic("Invalid naming strategy")
+	}
+	// add new node to nodes
+	node := Node{
+		Name:   nodeName,
+		Chunks: 0,
+	}
+	nodes = append(nodes, node)
+	return nodes
+}
+
+func removeRandomNode(nodes []Node) []Node {
+	index := rand.Intn(len(nodes))
+	return append(nodes[0:index], nodes[index+1:]...)
 }
 
 func nameStr(i uint64) string {
-	// hex truncated to first seven characters
+	// hex
 	s := strconv.FormatUint(i, 16)
 	for len(s) < 16 {
 		s = "0" + s
 	}
-	return s[0:7]
+	return s
 }
 
 func nameForBestFit(names []uint64) uint64 {
@@ -138,14 +166,7 @@ func nameForBestFit(names []uint64) uint64 {
 		if i > 0 {
 			previousName = names[i-1]
 		}
-		var spacing uint64
-		if spacingStrategy == "linear" {
-			spacing = thisName - previousName
-		} else if spacingStrategy == "xordistance" {
-			spacing = thisName ^ previousName
-		} else {
-			panic("unknown spacing strategy")
-		}
+		spacing := getSpacing(thisName, previousName)
 		if spacing > maxSpacing {
 			maxSpacing = spacing
 			minName = previousName
@@ -154,7 +175,7 @@ func nameForBestFit(names []uint64) uint64 {
 	}
 	// check the space between the last node and MaxUint64
 	lastName := names[len(names)-1]
-	lastSpacing := math.MaxUint64 - lastName
+	lastSpacing := getSpacing(math.MaxUint64, lastName)
 	if lastSpacing > maxSpacing {
 		minName = lastName
 		maxName = math.MaxUint64
@@ -191,4 +212,61 @@ func nameForQuiestestHalf(names []uint64) uint64 {
 		name = rand.Uint64()
 	}
 	return name
+}
+
+func standardDeviation(numbers []uint64) int64 {
+	avg := average(numbers)
+	bigAvg := big.NewInt(0).SetUint64(avg)
+	totalDiffs := big.NewInt(0)
+	for _, number := range numbers {
+		bigNumber := big.NewInt(0).SetUint64(number)
+		bigDiff := big.NewInt(0).Sub(bigNumber, bigAvg)
+		bigDiffSquared := big.NewInt(0).Mul(bigDiff, bigDiff)
+		totalDiffs = big.NewInt(0).Add(totalDiffs, bigDiffSquared)
+	}
+	bigDeviation := totalDiffs.Div(totalDiffs, big.NewInt(int64(len(numbers)-1)))
+	return bigDeviation.Sqrt(bigDeviation).Int64()
+}
+
+func average(numbers []uint64) uint64 {
+	total := big.NewInt(0)
+	for _, number := range numbers {
+		bigNumber := big.NewInt(0).SetUint64(number)
+		total = total.Add(total, bigNumber)
+	}
+	bigLen := big.NewInt(int64(len(numbers)))
+	bigAverage := total.Div(total, bigLen)
+	return bigAverage.Uint64()
+}
+
+func getAllSpacings(nodes []Node) []uint64 {
+	spacings := []uint64{}
+	// spacing from 0 to first name
+	firstSpacing := getSpacing(nodes[0].Name, 0)
+	spacings = append(spacings, firstSpacing)
+	// all other spacing between names
+	for i, _ := range nodes {
+		if i == 0 {
+			continue
+		}
+		spacing := getSpacing(nodes[i].Name, nodes[i-1].Name)
+		spacings = append(spacings, spacing)
+	}
+	// spacing from last name to MaxUint64
+	lastName := nodes[len(nodes)-1].Name
+	lastSpacing := getSpacing(math.MaxUint64, lastName)
+	spacings = append(spacings, lastSpacing)
+	return spacings
+}
+
+func getSpacing(bigName, smallName uint64) uint64 {
+	var spacing uint64
+	if spacingStrategy == "linear" {
+		spacing = bigName - smallName
+	} else if spacingStrategy == "xordistance" {
+		spacing = bigName ^ smallName
+	} else {
+		panic("unknown spacing strategy")
+	}
+	return spacing
 }
