@@ -17,6 +17,7 @@ import (
 
 const totalNames int = 100
 const namingStrategy = "uniform" // uniform, random, bestfit, quietesthalf
+const spacingStrategy = "xordistance" // linear, xordistance
 
 // Sorters
 
@@ -100,7 +101,14 @@ func nameForBestFit(names []uint64) uint64 {
 		if i > 0 {
 			previousName = names[i-1]
 		}
-		spacing := thisName - previousName
+		var spacing uint64
+		if spacingStrategy == "linear" {
+			spacing = thisName - previousName
+		} else if spacingStrategy == "xordistance" {
+			spacing = thisName ^ previousName
+		} else {
+			panic("unknown spacing strategy")
+		}
 		if spacing > maxSpacing {
 			maxSpacing = spacing
 			minName = previousName
