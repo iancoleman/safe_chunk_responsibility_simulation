@@ -18,6 +18,7 @@ import (
 const totalNames int = 100
 const namingStrategy = "uniform" // uniform, random, bestfit, quietesthalf
 const spacingStrategy = "xordistance" // linear, xordistance
+const relocations int = 100
 
 // Sorters
 
@@ -37,22 +38,12 @@ func main() {
 	// create names
 	names := []uint64{}
 	for i := 0; i < totalNames; i++ {
-		// get name that suits the naming strategy
-		var name uint64
-		if namingStrategy == "uniform" {
-			progress := float64(i) / float64(totalNames)
-			name = uint64(float64(math.MaxUint64) * progress)
-		} else if namingStrategy == "random" {
-			name = rand.Uint64()
-		} else if namingStrategy == "bestfit" {
-			name = nameForBestFit(names)
-		} else if namingStrategy == "quietesthalf" {
-			name = nameForQuiestestHalf(names)
-		} else {
-			panic("Invalid naming strategy")
-		}
-		// add new name to the section
-		names = append(names, name)
+		names = addNewName(names)
+	}
+	// do relocations
+	for i := 0; i < relocations; i++ {
+		names = removeRandomName(names)
+		names = addNewName(names)
 	}
 	// get distances
 	distances := []uint64{}
@@ -79,6 +70,31 @@ func main() {
 	}
 	fmt.Println("\nStandard deviation of distances:")
 	fmt.Println(standardDeviation(distances))
+}
+
+func addNewName(names []uint64) []uint64 {
+	// get name that suits the naming strategy
+	var name uint64
+	if namingStrategy == "uniform" {
+		progress := float64(len(names)) / float64(totalNames)
+		name = uint64(float64(math.MaxUint64) * progress)
+	} else if namingStrategy == "random" {
+		name = rand.Uint64()
+	} else if namingStrategy == "bestfit" {
+		name = nameForBestFit(names)
+	} else if namingStrategy == "quietesthalf" {
+		name = nameForQuiestestHalf(names)
+	} else {
+		panic("Invalid naming strategy")
+	}
+	// add new name to the section
+	names = append(names, name)
+	return names
+}
+
+func removeRandomName(names []uint64) []uint64 {
+	index := rand.Intn(len(names))
+	return append(names[0:index], names[index:]...)
 }
 
 func nameForBestFit(names []uint64) uint64 {
