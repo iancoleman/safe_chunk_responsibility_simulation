@@ -18,9 +18,19 @@ import (
 const totalNodes int = 100
 const totalChunks int = 1000000
 const groupSize int = 8
-const namingStrategy = "bestfit"      // uniform, random, bestfit, quietesthalf
-const spacingStrategy = "xordistance" // linear, xordistance
 const relocations int = 100
+
+// How names for new / relocated vaults are chosen.
+// - uniform means vault names are spaced evenly, eg [10, 20, 30, 40]
+// - random means vault names are chosen randomly, eg [10, 11, 19, 33]
+// - bestfit aims to put the next vault into the largest space
+// - quietesthalf aims to put the next vault in the half with the least vaults
+const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
+
+// How space between vaults is measured
+// - linear uses bigName - smallName
+// - xordistance uses bigName ^ smallName
+const spacingStrategy = "xordistance" // linear, xordistance
 
 // Structs
 
