@@ -182,6 +182,10 @@ func nameForBestFit(names []uint64) uint64 {
 		minName = lastName
 		maxName = math.MaxUint64
 	}
+	// adjust the names to be in a more precise gap
+	// https://safenetforum.org/t/chunk-distribution-within-sections/29187/34
+	minName = minName + (maxSpacing / 3)
+	maxName = maxName - (maxSpacing / 3)
 	// find a new name within this spacing
 	for name <= minName && name >= maxName {
 		name = rand.Uint64()
