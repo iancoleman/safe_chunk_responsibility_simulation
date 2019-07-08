@@ -18,7 +18,7 @@ import (
 const totalNodes int = 100
 const totalChunks int = 1000000
 const groupSize int = 8
-const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
+const namingStrategy = "bestfit"      // uniform, random, bestfit, quietesthalf
 const spacingStrategy = "xordistance" // linear, xordistance
 const relocations int = 100
 
