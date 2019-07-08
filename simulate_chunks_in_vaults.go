@@ -121,7 +121,7 @@ func addNewNode(nodes []Node) []Node {
 	} else if namingStrategy == "bestfit" {
 		nodeName = nameForBestFit(names)
 	} else if namingStrategy == "quietesthalf" {
-		nodeName = nameForQuiestestHalf(names)
+		nodeName = nameForQuietestHalf(names)
 	} else {
 		panic("Invalid naming strategy")
 	}
@@ -194,7 +194,7 @@ func nameForBestFit(names []uint64) uint64 {
 	return name
 }
 
-func nameForQuiestestHalf(names []uint64) uint64 {
+func nameForQuietestHalf(names []uint64) uint64 {
 	// count the vaults in each half
 	var halfway uint64 = math.MaxUint64 / 2
 	firstHalfVaults := 0
