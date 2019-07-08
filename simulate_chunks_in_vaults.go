@@ -65,6 +65,7 @@ func (a ByName) Less(i, j int) bool { return a[i] < a[j] }
 // Functions
 
 func main() {
+	runTests()
 	// set up random numbers
 	nowNanos := time.Now().UnixNano()
 	rand.Seed(nowNanos)
@@ -288,4 +289,39 @@ func getSpacing(bigName, smallName uint64) uint64 {
 		panic("unknown spacing strategy")
 	}
 	return spacing
+}
+
+func runTests() {
+	// standard deviation
+	set := []uint64{5, 5, 5}
+	dev := standardDeviation(set)
+	if dev != 0 {
+		panic("Fail standard deviation all equal")
+	}
+	set = []uint64{1000, 3000, 7000}
+	dev = standardDeviation(set)
+	if dev != 3055 {
+		panic("Fail standard deviation flooring to int")
+	}
+	set = []uint64{math.MaxUint64, math.MaxUint64 - 99, math.MaxUint64 - 9999}
+	dev = standardDeviation(set)
+	if dev != 5744 {
+		panic("Fail standard deviation very large numbers")
+	}
+	// average
+	set = []uint64{5, 5, 5}
+	avg := average(set)
+	if avg != 5 {
+		panic("Fail average all equal")
+	}
+	set = []uint64{1000, 3000, 7000}
+	avg = average(set)
+	if avg != 3666 {
+		panic("Fail average flooring to int")
+	}
+	set = []uint64{math.MaxUint64, math.MaxUint64 - 99, math.MaxUint64 - 9999}
+	avg = average(set)
+	if avg != math.MaxUint64-3366 {
+		panic("Fail average very large numbers")
+	}
 }
