@@ -150,38 +150,40 @@ func nameStr(i uint64) string {
 
 func nameForBestFit(names []uint64) uint64 {
 	name := rand.Uint64()
-	// if this is the first node
-	// or names are random (ie the largest space is not being targeted)
-	// add it now
-	if len(names) == 0 {
-		return name
-	}
 	// get the maximum spacing between existing names
 	var maxSpacing uint64
 	var minName uint64
 	var maxName uint64
-	sort.Sort(ByName(names))
-	// find the maximum space between names
-	for i, _ := range names {
-		thisName := names[i]
-		var previousName uint64 = 0
-		if i > 0 {
-			previousName = names[i-1]
-		}
-		spacing := getSpacing(thisName, previousName)
-		if spacing > maxSpacing {
-			maxSpacing = spacing
-			minName = previousName
-			maxName = thisName
-		}
-	}
-	// check the space between the last node and MaxUint64
-	lastName := names[len(names)-1]
-	lastSpacing := getSpacing(math.MaxUint64, lastName)
-	if lastSpacing > maxSpacing {
-		maxSpacing = lastSpacing
-		minName = lastName
+	// if this is the first node
+	// the name must be between 0 and MaxUint64
+	if len(names) == 0 {
+		maxSpacing = math.MaxUint64
+		minName = 0
 		maxName = math.MaxUint64
+	} else {
+		// find the maximum space between names
+		sort.Sort(ByName(names))
+		for i, _ := range names {
+			thisName := names[i]
+			var previousName uint64 = 0
+			if i > 0 {
+				previousName = names[i-1]
+			}
+			spacing := getSpacing(thisName, previousName)
+			if spacing > maxSpacing {
+				maxSpacing = spacing
+				minName = previousName
+				maxName = thisName
+			}
+		}
+		// check the space between the last node and MaxUint64
+		lastName := names[len(names)-1]
+		lastSpacing := getSpacing(math.MaxUint64, lastName)
+		if lastSpacing > maxSpacing {
+			maxSpacing = lastSpacing
+			minName = lastName
+			maxName = math.MaxUint64
+		}
 	}
 	// adjust the names to be in a more precise gap
 	// https://safenetforum.org/t/chunk-distribution-within-sections/29187/34
