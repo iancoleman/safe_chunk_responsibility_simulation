@@ -73,9 +73,11 @@ func main() {
 		nodes = addNewNode(nodes)
 	}
 	// do relocations
-	for i := 0; i < relocations; i++ {
-		nodes = removeRandomNode(nodes)
-		nodes = addNewNode(nodes)
+	if namingStrategy != "uniform" {
+		for i := 0; i < relocations; i++ {
+			nodes = removeRandomNode(nodes)
+			nodes = addNewNode(nodes)
+		}
 	}
 	// create chunks
 	for i := 0; i < totalChunks; i++ {
