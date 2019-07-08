@@ -179,6 +179,7 @@ func nameForBestFit(names []uint64) uint64 {
 	lastName := names[len(names)-1]
 	lastSpacing := getSpacing(math.MaxUint64, lastName)
 	if lastSpacing > maxSpacing {
+		maxSpacing = lastSpacing
 		minName = lastName
 		maxName = math.MaxUint64
 	}
