@@ -16,7 +16,7 @@ import (
 // Parameters
 
 const totalNodes int = 100
-const totalChunks int = 1000000
+const totalStored int = 1000000
 const groupSize int = 8
 const relocations int = 100
 
@@ -32,12 +32,18 @@ const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
 // - xordistance uses bigName ^ smallName
 const spacingStrategy = "xordistance" // linear, xordistance
 
+// Which units to use for tracking storage
+// - chunks counts the number of chunks per vault
+// - megabytes counts the number of megabytes per vault since some chunks
+//   may be less than 1 MB in size
+const storageUnits = "chunks" // chunks, megabytes
+
 // Structs
 
 type Node struct {
 	Name         uint64
 	CurrentChunk uint64
-	Chunks       int
+	Stored       float64
 }
 
 // Sorters
@@ -72,10 +78,11 @@ func main() {
 	// report the starting parameters
 	fmt.Print("seed,", nowNanos, "\n")
 	fmt.Print("totalNodes,", totalNodes, "\n")
-	fmt.Print("totalChunks,", totalChunks, "\n")
+	fmt.Print("totalStored,", totalStored, "\n")
 	fmt.Print("groupSize,", groupSize, "\n")
 	fmt.Print("namingStrategy,", namingStrategy, "\n")
 	fmt.Print("spacingStrategy,", spacingStrategy, "\n")
+	fmt.Print("storageUnits,", storageUnits, "\n")
 	fmt.Print("relocations,", relocations, "\n")
 	fmt.Println()
 	// create nodes
@@ -91,7 +98,7 @@ func main() {
 		}
 	}
 	// create chunks
-	for i := 0; i < totalChunks; i++ {
+	for i := 0; i < totalStored; i++ {
 		chunkName := rand.Uint64()
 		// set chunk name for sorting
 		for j, _ := range nodes {
@@ -101,14 +108,21 @@ func main() {
 		sort.Sort(ByXorDistance(nodes))
 		// add chunk to the closest group nodes
 		for j := 0; j < groupSize; j++ {
-			nodes[j].Chunks += 1
+			if storageUnits == "chunks" {
+				nodes[j].Stored += 1
+			} else if storageUnits == "megabytes" {
+				mb := getRandomChunkSize()
+				nodes[j].Stored += mb
+			} else {
+				panic("Invalid storage units")
+			}
 		}
 	}
 	// report
 	sort.Sort(ByNodeName(nodes))
-	fmt.Println("vault name,chunks stored")
+	fmt.Println("vault name," + storageUnits + " stored")
 	for _, n := range nodes {
-		fmt.Printf("%s,%d\n", nameStr(n.Name), n.Chunks)
+		fmt.Printf("%s,%f\n", nameStr(n.Name), n.Stored)
 	}
 	spacings := getAllSpacings(nodes)
 	fmt.Println("\nStandard deviation of spacings:")
@@ -139,7 +153,7 @@ func addNewNode(nodes []Node) []Node {
 	// add new node to nodes
 	node := Node{
 		Name:   nodeName,
-		Chunks: 0,
+		Stored: 0,
 	}
 	nodes = append(nodes, node)
 	return nodes
@@ -323,5 +337,46 @@ func runTests() {
 	avg = average(set)
 	if avg != math.MaxUint64-3366 {
 		panic("Fail average very large numbers")
+	}
+}
+
+func getRandomChunkSize() float64 {
+	// returns a chunk size in MB
+	// distribution of chunk sizes taken from
+	// https://safenetforum.org/t/traffic-sizes-on-the-safe-network/22213
+	i := rand.Float64()
+	if i < 0.709159 {
+		// between 0-100 KB
+		return rand.Float64() * 0.1
+	} else if i < 0.774634 {
+		// between 100-200 KB
+		return rand.Float64()*0.1 + 0.1
+	} else if i < 0.777539 {
+		// between 200-300 KB
+		return rand.Float64()*0.1 + 0.2
+	} else if i < 0.778139 {
+		// between 300-400 KB
+		return rand.Float64()*0.1 + 0.3
+	} else if i < 0.778459 {
+		// between 400-500 KB
+		return rand.Float64()*0.1 + 0.4
+	} else if i < 0.779100 {
+		// between 500-600 KB
+		return rand.Float64()*0.1 + 0.5
+	} else if i < 0.779342 {
+		// between 600-700 KB
+		return rand.Float64()*0.1 + 0.6
+	} else if i < 0.779450 {
+		// between 700-800 KB
+		return rand.Float64()*0.1 + 0.7
+	} else if i < 0.779588 {
+		// between 800-900 KB
+		return rand.Float64()*0.1 + 0.8
+	} else if i < 0.779730 {
+		// between 900-1000 KB
+		return rand.Float64()*0.1 + 0.9
+	} else {
+		// 1000+
+		return 1
 	}
 }
