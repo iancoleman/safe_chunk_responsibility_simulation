@@ -426,7 +426,7 @@ func runTests() {
 		0xF000000000003000,
 	}
 	name := nameForEmptySubsection(names)
-	if !((name >= emptyA[0] && name < emptyA[1]) || (name >= emptyB[0] && name < emptyB[1])) {
+	if !((name >= emptyA[0] && name <= emptyA[1]) || (name >= emptyB[0] && name <= emptyB[1])) {
 		panic("Name for empty subsection is wrong")
 	}
 }
