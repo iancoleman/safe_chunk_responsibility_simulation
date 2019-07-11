@@ -398,6 +398,37 @@ func runTests() {
 	if avg != math.MaxUint64-3366 {
 		panic("Fail average very large numbers")
 	}
+	// emptysubsection tests
+	emptyA := []uint64{
+		0x4000000000000000,
+		0x5000000000000000 - 1,
+	}
+	emptyB := []uint64{
+		0xB000000000000000,
+		0xC000000000000000 - 1,
+	}
+	names := []uint64{
+		0x0000000000003000,
+		0x1000000000003000,
+		0x2000000000003000,
+		0x3000000000003000,
+		//0x4000000000003000,
+		0x5000000000003000,
+		0x6000000000003000,
+		0x7000000000003000,
+		0x8000000000003000,
+		0x9000000000003000,
+		0xA000000000003000,
+		//0xB000000000003000,
+		0xC000000000003000,
+		0xD000000000003000,
+		0xE000000000003000,
+		0xF000000000003000,
+	}
+	name := nameForEmptySubsection(names)
+	if !((name >= emptyA[0] && name < emptyA[1]) || (name >= emptyB[0] && name < emptyB[1])) {
+		panic("Name for empty subsection is wrong")
+	}
 }
 
 func getRandomChunkSize() float64 {
