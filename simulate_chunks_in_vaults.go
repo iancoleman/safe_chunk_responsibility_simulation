@@ -25,18 +25,20 @@ const relocations int = 100
 // - random means vault names are chosen randomly, eg [10, 11, 19, 33]
 // - bestfit aims to put the next vault into the largest space
 // - quietesthalf aims to put the next vault in the half with the least vaults
-const namingStrategy = "bestfit" // uniform, random, bestfit, quietesthalf
+// - emptysubsection finds any subsections with no vaults and places randomly
+//   in one of them.
+const namingStrategy = "bestfit"
 
 // How space between vaults is measured
 // - linear uses bigName - smallName
 // - xordistance uses bigName ^ smallName
-const spacingStrategy = "xordistance" // linear, xordistance
+const spacingStrategy = "linear"
 
 // Which units to use for tracking storage
 // - chunks counts the number of chunks per vault
 // - megabytes counts the number of megabytes per vault since some chunks
 //   may be less than 1 MB in size
-const storageUnits = "chunks" // chunks, megabytes
+const storageUnits = "megabytes"
 
 // Structs
 
@@ -147,6 +149,8 @@ func addNewNode(nodes []Node) []Node {
 		nodeName = nameForBestFit(names)
 	} else if namingStrategy == "quietesthalf" {
 		nodeName = nameForQuietestHalf(names)
+	} else if namingStrategy == "emptysubsection" {
+		nodeName = nameForEmptySubsection(names)
 	} else {
 		panic("Invalid naming strategy")
 	}
@@ -243,6 +247,62 @@ func nameForQuietestHalf(names []uint64) uint64 {
 	// find a new name within this spacing
 	name := rand.Uint64()
 	for name <= minName && name >= maxName {
+		name = rand.Uint64()
+	}
+	return name
+}
+
+func nameForEmptySubsection(names []uint64) uint64 {
+	var searchDepth uint64 = 0
+	// find all empty subsections, starting with the biggest subsection
+	// and progressively testing smaller subsections.
+	// slice of subsections with each subsections being [startName,endName]
+	emptySubsections := [][]uint64{}
+	for len(emptySubsections) == 0 {
+		// generate all subsections for this searchDepth
+		subsections := [][]uint64{}
+		var totalSubsections uint64 = uint64(1) << searchDepth
+		var subsectionSize uint64 = math.MaxUint64 >> searchDepth
+		for i := uint64(0); i < totalSubsections; i++ {
+			onlyOneSubsection := totalSubsections == 1
+			if onlyOneSubsection {
+				subsection := []uint64{0, subsectionSize}
+				subsections = append(subsections, subsection)
+			} else {
+				start := i * (subsectionSize + 1)
+				end := start + subsectionSize
+				subsection := []uint64{start, end}
+				subsections = append(subsections, subsection)
+			}
+		}
+		// find any empty subsections
+		for _, subsection := range subsections {
+			isEmpty := true
+			for _, name := range names {
+				start := subsection[0]
+				end := subsection[1]
+				if name >= start && name <= end {
+					// if this name is within this subsection the sector is not
+					// empty
+					isEmpty = false
+					break
+				}
+			}
+			if isEmpty {
+				emptySubsections = append(emptySubsections, subsection)
+			}
+		}
+		// search deeper
+		searchDepth += 1
+	}
+	// generate a name within an empty subsection
+	name := rand.Uint64()
+	for true {
+		for _, subsection := range emptySubsections {
+			if name >= subsection[0] && name <= subsection[1] {
+				return name
+			}
+		}
 		name = rand.Uint64()
 	}
 	return name
